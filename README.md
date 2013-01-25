@@ -7,7 +7,7 @@ A utility to see and report status of diffrent server issues (ie: is someone wor
 Sub-projects
 ------------
 
- - web/
+ - server/
    Server
 
  - cli/
