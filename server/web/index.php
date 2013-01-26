@@ -1,3 +1,4 @@
+<?php
 require_once __DIR__.'/../vendor/autoload.php';
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpFoundation\Request;
@@ -23,18 +24,30 @@ $app->before(function (Request $request){
 */
 
 /* POSTs */
+/* New status post */
+$app->post('/', function(Request $req) {
+    $opts = array(
+      'who' => $req->request->get('who'),
+      'what' => $req->request->get('what'),
+    );
+
+
+
+
+
+/* PUTs */
+/* Update status of
+//$app->put(
 
 /* GETs */
 $app->get('/', function() use ($app) {
-    return 'Hello '.$app->escape($name);
-});
-
-$app->get('/list.json', function() use ($app) {
-    return $app->json(array(array(
-                              'id' => 41,
-                              'who' => 'blambi',
-                              'what' => 'Server X is on fire, called firedepartment',
-                              'open' => true )));
+    return $app->json(
+      array(
+        array(
+          'id' => 41,
+          'who' => 'blambi',
+          'what' => 'Server X is on fire, called firedepartment',
+          'open' => true)));
 });
 
 
