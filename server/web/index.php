@@ -25,13 +25,16 @@ $app->before(function (Request $request){
 
 /* POSTs */
 /* New status post */
-$app->post('/', function(Request $req) {
+$app->post('/', function(Request $req) use ($app) {
     $opts = array(
       'who' => $req->request->get('who'),
       'what' => $req->request->get('what'),
     );
 
+    // Do magic
 
+    return $app->json(array('successful' => true));
+});
 
 
 
