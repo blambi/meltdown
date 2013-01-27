@@ -26,14 +26,30 @@ $app->before(function (Request $request){
 /* POSTs */
 /* New status post */
 $app->post('/', function(Request $req) use ($app) {
-    $opts = array(
-      'who' => $req->request->get('who'),
-      'what' => $req->request->get('what'),
-    );
+    // Arguments
+    $who = $req->request->get('who');
+    $what = $req->request->get('what');
 
-    // Do magic
+    /*if(empty($opts['who']) or empty($opts['what'])) {
+      return $app->json(array('success' => false,
+                              'message' => 'To few arguments'));
+                              }*/
 
-    return $app->json(array('successful' => true));
+    $mongo = new \Mongo();
+    $db = $mongo->meltdown;
+
+    // Generate next id
+    $uid_obj = $db->variables->findOne(array('name' => 'uid_counter'), array('value' => -1));
+    $uid = !empty($uid_obj) && key_exists('value', $uid_obj) ? $uid_obj['value'] +1 : 0;
+    $db->variables->remove(array('name' => 'uid_counter'));
+    $db->variables->insert(array('name' => 'uid_counter', 'value' => $uid));
+
+    $db->issues->insert(array(
+                            '_id' => $uid,
+                          'who' => strip_tags($who),
+                          'what' => strip_tags($what)));
+
+    return $app->json(array('successful' => true, 'id' => $uid));
 });
 
 
@@ -43,14 +59,19 @@ $app->post('/', function(Request $req) use ($app) {
 //$app->put(
 
 /* GETs */
-$app->get('/', function() use ($app) {
-    return $app->json(
-      array(
+$app->get('/', function(Request $req) use ($app) {
+    if (0 === strpos($req->headers->get('Content-Type'), 'application/json')) {
+      return $app->json(
         array(
-          'id' => 41,
-          'who' => 'blambi',
-          'what' => 'Server X is on fire, called firedepartment',
-          'open' => true)));
+          array(
+            'id' => 41,
+            'who' => 'blambi',
+            'what' => 'Server X is on fire, called firedepartment',
+            'open' => true)));
+    }
+    else {
+        return "not yet...";
+    }
 });
 
 
