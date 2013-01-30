@@ -30,10 +30,10 @@ $app->post('/', function(Request $req) use ($app) {
     $who = $req->request->get('who');
     $what = $req->request->get('what');
 
-    /*if(empty($opts['who']) or empty($opts['what'])) {
+    if(empty($opts['who']) or empty($opts['what'])) {
       return $app->json(array('success' => false,
-                              'message' => 'To few arguments'));
-                              }*/
+                              'why' => 'To few arguments'));
+    }
 
     $mongo = new \Mongo();
     $db = $mongo->meltdown;
@@ -42,14 +42,15 @@ $app->post('/', function(Request $req) use ($app) {
     $uid_obj = $db->variables->findOne(array('name' => 'uid_counter'), array('value' => -1));
     $uid = !empty($uid_obj) && key_exists('value', $uid_obj) ? $uid_obj['value'] +1 : 0;
     $db->variables->remove(array('name' => 'uid_counter'));
-    $db->variables->insert(array('name' => 'uid_counter', 'value' => $uid, 'open' => true));
+    $db->variables->insert(array('name' => 'uid_counter', 'value' => $uid));
 
     $db->issues->insert(array(
                             '_id' => $uid,
-                          'who' => strip_tags($who),
-                          'what' => strip_tags($what)));
+                            'who' => strip_tags($who),
+                            'what' => strip_tags($what),
+                            'open' => true));
 
-    return $app->json(array('successful' => true, 'id' => $uid));
+    return $app->json(array('successful' => true, 'id' => $uid, ));
 });
 
 
@@ -65,23 +66,21 @@ $app->get('/', function(Request $req) use ($app) {
 
     if (0 === strpos($req->headers->get('Content-Type'), 'application/json')) {
       $ret = array();
-      foreach($open_issues => $issue) {
+      foreach($open_issues as $issue) {
         $ret[]= array(
           'id' => $issue['_id'],
           'who' => $issue['who'],
           'what' => $issue['what'],
           'open' => $issue['open']);
       }
-      /*return $app->json(
-        array(
-          array(
-            'id' => 41,
-            'who' => 'blambi',
-            'what' => 'Server X is on fire, called firedepartment',
-            'open' => true)));*/
     }
     else {
-        return "not yet...";
+        $ret = "";
+
+        foreach($open_issues as $issue) {
+          $ret .= "#". $issue['_id'] . ", who: " . $issue['who'] . ", what: " . $issue['what'] . "\n";
+        }
+        return $ret;
     }
 });
 

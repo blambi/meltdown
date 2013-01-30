@@ -41,13 +41,13 @@ class REST_Kernel:
         try:
             response = self.__post(body)
         except ValueError, why:
-            return { 'error': True, 'message': why }
+            return { 'error': True, 'why': why }
 
         if response.has_key('successful'):
             if response['successful']:
                 return { 'error': False, 'id': response['id'] }
             else:
-                return { 'error': True, 'message': response['why'] }
+                return { 'error': True, 'why': response['why'] }
         return False
 
 # -- main
