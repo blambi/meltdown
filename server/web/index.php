@@ -42,7 +42,7 @@ $app->post('/', function(Request $req) use ($app) {
     $uid_obj = $db->variables->findOne(array('name' => 'uid_counter'), array('value' => -1));
     $uid = !empty($uid_obj) && key_exists('value', $uid_obj) ? $uid_obj['value'] +1 : 0;
     $db->variables->remove(array('name' => 'uid_counter'));
-    $db->variables->insert(array('name' => 'uid_counter', 'value' => $uid));
+    $db->variables->insert(array('name' => 'uid_counter', 'value' => $uid, 'open' => true));
 
     $db->issues->insert(array(
                             '_id' => $uid,
@@ -53,27 +53,37 @@ $app->post('/', function(Request $req) use ($app) {
 });
 
 
-
 /* PUTs */
 /* Update status of
 //$app->put(
 
 /* GETs */
 $app->get('/', function(Request $req) use ($app) {
+    $mongo = new \Mongo();
+    $db = $mongo->meltdown;
+    $open_issues = $db->issues->find(array('open' => true));
+
     if (0 === strpos($req->headers->get('Content-Type'), 'application/json')) {
-      return $app->json(
+      $ret = array();
+      foreach($open_issues => $issue) {
+        $ret[]= array(
+          'id' => $issue['_id'],
+          'who' => $issue['who'],
+          'what' => $issue['what'],
+          'open' => $issue['open']);
+      }
+      /*return $app->json(
         array(
           array(
             'id' => 41,
             'who' => 'blambi',
             'what' => 'Server X is on fire, called firedepartment',
-            'open' => true)));
+            'open' => true)));*/
     }
     else {
         return "not yet...";
     }
 });
-
 
 
 $app->run();
