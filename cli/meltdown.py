@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 import json
 import urllib2
+import argparse
 
 class REST_Kernel:
     def __init__(self, base_uri):
@@ -21,7 +22,7 @@ class REST_Kernel:
         response = fp.read()
         return json.loads(response)
 
-    def __put(self, body, uri = None):       
+    def __put(self, body, uri = None):
         raise BaseException, "Not implemented yet!"
 
     def __get(self, body, uri = None):
@@ -42,12 +43,43 @@ class REST_Kernel:
         except ValueError, why:
             return { 'error': True, 'message': why }
 
-        if response.has_key('successful') and response['successful']:
-            return True
+        if response.has_key('successful'):
+            if response['successful']:
+                return { 'error': False, 'id': response['id'] }
+            else:
+                return { 'error': True, 'message': response['why'] }
         return False
 
 # -- main
 if __name__ == '__main__':
-    kernel = REST_Kernel('http://localhost/meltdown/web/')
+    # This needs some work, but basic arg parsing is ready
+    arg_parse = argparse.ArgumentParser( description = "Meltdown client - Report whats up etc." )
+    arg_parse.add_argument('-u', '--uri', type=str, help="URI to connect to (default http://localhost:80).", default="http://localhost:80")
+    arg_parse.add_argument('-l', '--list', help="Lists open/closed/all issues.", nargs=1, metavar=('TYPE')) # Hmmm not sure how
+    arg_parse.add_argument('-r', '--report', help="Report a new issue.", nargs=2, metavar=('WHO', 'WHAT'))
+    arg_parse.add_argument('-c', '--close', help="Close an issue by id.", nargs=1, metavar=('ID',))
 
-    print kernel.new_issue("Coder", "My sample issue!")
+    #arg_parse.add_argument('-a', '--action', type=str, help="Action to do: create, close, list, list_all. (default create)", default="create")
+    #arg_parse.add_argument('who', type=str, help="Who is doing something", default='')
+    #arg_parse.add_argument('what', type=str, help="What is happening", default='')
+    #arg_parse.add_argument('id', type=int, help="Incident/Issue ID to close", default=-1)
+    args = arg_parse.parse_args()
+
+    kernel = REST_Kernel(args.uri)
+
+    if args.report:
+        ret = kernel.new_issue(args.report[0], args.report[1])
+
+        if ret and ret['error']:
+            print("ERR: {0}.".format(ret['why']))
+        elif ret:
+            print("OK: Created issue #{0}.".format(ret['id']))
+        else:
+            print("ERR: Undefined error occurred.")
+
+    elif args.close:
+        pass
+    elif args.list:
+        pass
+    else: # List all is the default..
+        print("Wohaha...")
