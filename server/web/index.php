@@ -8,9 +8,17 @@ $app = new Silex\Application();
 
 /* - Pick out the JSON - */
 $app->before(function (Request $request){
-    if (0 === strpos($request->headers->get('Content-Type'), 'application/json')) {
+    if (0 === strpos($request->headers->get('content-type'), 'application/json')) {
+      file_put_contents("/tmp/fullog", print_r($request->getContent(), true));
       $data = json_decode($request->getContent(), true);
       $request->request->replace(is_array($data) ? $data : array());
+      /*if(is_array($data)) {
+         file_put_contents("/tmp/fullog", print_r($data, true));
+      }
+      else {
+         file_put_contents("/tmp/fullog", "wtf php");
+         }*/
+
     }
 });
 
@@ -29,8 +37,8 @@ $app->post('/', function(Request $req) use ($app) {
     // Arguments
     $who = $req->request->get('who');
     $what = $req->request->get('what');
-
-    if(empty($opts['who']) or empty($opts['what'])) {
+    //file_put_contents("/tmp/fullog", print_r(array("who" => $who, "what" => $what, true)));
+    if(empty($who) or empty($what)) {
       return $app->json(array('success' => false,
                               'why' => 'To few arguments'));
     }
@@ -64,7 +72,7 @@ $app->get('/', function(Request $req) use ($app) {
     $db = $mongo->meltdown;
     $open_issues = $db->issues->find(array('open' => true));
 
-    if (0 === strpos($req->headers->get('Content-Type'), 'application/json')) {
+    if (0 === strpos($req->headers->get('content-type'), 'application/json')) {
       $ret = array();
       foreach($open_issues as $issue) {
         $ret[]= array(
@@ -73,14 +81,17 @@ $app->get('/', function(Request $req) use ($app) {
           'what' => $issue['what'],
           'open' => $issue['open']);
       }
+
+      return $app->json($ret);
     }
     else {
-        $ret = "";
+        $ret = "Open issues:\n";
 
         foreach($open_issues as $issue) {
-          $ret .= "#". $issue['_id'] . ", who: " . $issue['who'] . ", what: " . $issue['what'] . "\n";
+          $ret .= "[". $issue['_id'] . "] who: " . $issue['who'] . ", what: " . $issue['what'] . "\n";
         }
-        return $ret;
+
+        return new Response($ret, 200, array('Content-Type' => 'text/plain'));
     }
 });
 

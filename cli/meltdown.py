@@ -3,10 +3,13 @@ import json
 import urllib2
 import argparse
 
+__author__ = "Patrik Lembke <blambi@chebab.com>"
+__version__ = "0.1"
+
 class REST_Kernel:
     def __init__(self, base_uri):
         self.base_uri = base_uri
-        self.user_agent = "MeltdownPY 0.1"
+        self.user_agent = "MeltdownPY {0}".format(__version__)
 
     def __post(self, body, uri = None):
         body = json.dumps(body)
@@ -18,15 +21,32 @@ class REST_Kernel:
         request = urllib2.Request(full_uri, body,
                                   {'Content-Type': 'application/json',
                                    'User-Agent': self.user_agent})
-        fp = urllib2.urlopen((request))
+        try:
+            fp = urllib2.urlopen((request))
+        except urllib2.HTTPError, why:
+            return { 'error': why }
+
         response = fp.read()
         return json.loads(response)
 
     def __put(self, body, uri = None):
         raise BaseException, "Not implemented yet!"
 
-    def __get(self, body, uri = None):
-        raise BaseException, "Not implemented yet!"
+    def __get(self, uri = None):
+        if uri:
+            full_uri = self.base_uri + uri
+        else:
+            full_uri = self.base_uri
+        request = urllib2.Request(full_uri, None,
+                                  {'Content-Type': 'application/json',
+                                   'User-Agent': self.user_agent})
+        try:
+            fp = urllib2.urlopen((request))
+        except urllib2.HTTPError, why:
+            return { 'error': why }
+
+        response = fp.read()
+        return json.loads(response)
 
     def get_all_open(self):
         response = self.__get()
@@ -34,17 +54,15 @@ class REST_Kernel:
 
     def new_issue(self, who, what):
         """Tries to report a new issue to the server"""
-        body = json.dumps({
-                'who': who,
-                'what': what})
+        body = {'who': who, 'what': what}
 
         try:
             response = self.__post(body)
         except ValueError, why:
             return { 'error': True, 'why': why }
 
-        if response.has_key('successful'):
-            if response['successful']:
+        if response.has_key('success'):
+            if response['success']:
                 return { 'error': False, 'id': response['id'] }
             else:
                 return { 'error': True, 'why': response['why'] }
@@ -58,11 +76,6 @@ if __name__ == '__main__':
     arg_parse.add_argument('-l', '--list', help="Lists open/closed/all issues.", nargs=1, metavar=('TYPE')) # Hmmm not sure how
     arg_parse.add_argument('-r', '--report', help="Report a new issue.", nargs=2, metavar=('WHO', 'WHAT'))
     arg_parse.add_argument('-c', '--close', help="Close an issue by id.", nargs=1, metavar=('ID',))
-
-    #arg_parse.add_argument('-a', '--action', type=str, help="Action to do: create, close, list, list_all. (default create)", default="create")
-    #arg_parse.add_argument('who', type=str, help="Who is doing something", default='')
-    #arg_parse.add_argument('what', type=str, help="What is happening", default='')
-    #arg_parse.add_argument('id', type=int, help="Incident/Issue ID to close", default=-1)
     args = arg_parse.parse_args()
 
     kernel = REST_Kernel(args.uri)
@@ -82,4 +95,11 @@ if __name__ == '__main__':
     elif args.list:
         pass
     else: # List all is the default..
-        print("Wohaha...")
+        open_issues = kernel.get_all_open()
+
+        print("ID\tWho\tWhat")
+        for issue in open_issues:
+            print("{0}\t{1}\t{2}".format(issue['id'],
+                                         issue['who'],
+                                         issue['what']))
+

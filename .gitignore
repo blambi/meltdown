@@ -2,3 +2,4 @@
 .project
 .pydevproject
 *~
+/server/web/nbproject/private/
