@@ -12,13 +12,6 @@ $app->before(function (Request $request){
       file_put_contents("/tmp/fullog", print_r($request->getContent(), true));
       $data = json_decode($request->getContent(), true);
       $request->request->replace(is_array($data) ? $data : array());
-      /*if(is_array($data)) {
-         file_put_contents("/tmp/fullog", print_r($data, true));
-      }
-      else {
-         file_put_contents("/tmp/fullog", "wtf php");
-         }*/
-
     }
 });
 
@@ -37,10 +30,10 @@ $app->post('/', function(Request $req) use ($app) {
     // Arguments
     $who = $req->request->get('who');
     $what = $req->request->get('what');
-    //file_put_contents("/tmp/fullog", print_r(array("who" => $who, "what" => $what, true)));
+
     if(empty($who) or empty($what)) {
       return $app->json(array('success' => false,
-                              'why' => 'To few arguments'));
+                              'why' => 'To few arguments'), 418);
     }
 
     $mongo = new \Mongo();
@@ -58,13 +51,24 @@ $app->post('/', function(Request $req) use ($app) {
                             'what' => strip_tags($what),
                             'open' => true));
 
-    return $app->json(array('successful' => true, 'id' => $uid, ));
+    return $app->json(array('success' => true, 'id' => $uid, 201));
 });
 
 
-/* PUTs */
-/* Update status of
-//$app->put(
+/**
+ * PUTs
+ * Are used for updating or closing issues
+ */
+$app->put('/{id}/close', function($id) {
+    if(!is_int($id)) {
+      return $app->json(array('success' => false, 'why' => "Issue ID must be an INT", 418));
+    }
+
+    $mongo = new \Mongo();
+    $db = $mongo->meltdown;
+
+    #$db->update()
+}
 
 /* GETs */
 $app->get('/', function(Request $req) use ($app) {
