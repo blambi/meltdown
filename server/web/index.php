@@ -51,7 +51,7 @@ $app->post('/', function(Request $req) use ($app) {
                             'what' => strip_tags($what),
                             'open' => true));
 
-    return $app->json(array('success' => true, 'id' => $uid, 201));
+    return $app->json(array('success' => true, 'id' => $uid), 201);
 });
 
 
@@ -59,16 +59,24 @@ $app->post('/', function(Request $req) use ($app) {
  * PUTs
  * Are used for updating or closing issues
  */
-$app->put('/{id}/close', function($id) {
-    if(!is_int($id)) {
-      return $app->json(array('success' => false, 'why' => "Issue ID must be an INT", 418));
+$app->put('/{id}/close', function($id) use ($app) {
+    if(!(is_numeric($id) && is_int((int)$id))) {
+      return $app->json(array('success' => false, 'why' => "Issue ID must be an INT"), 418);
     }
 
     $mongo = new \Mongo();
     $db = $mongo->meltdown;
 
-    #$db->update()
-}
+    // db.issues.update({'_id': 1},{$set: {'open': false}});
+    $db->issues->update(array('_id' => (int)$id), array('$set' => array('open' => false)));
+    $issue = $db->issues->findOne(array('_id' => (int)$id));
+
+    if(isset($issue) && !$issue['open']) { // add isset $issue
+      return $app->json(array('success' => true, 'open' => $issue['open'], 'id' => $issue['_id']), 200);
+    }
+
+    return $app->json(array('success' => false, 'why' => "Update failed"), 500);
+});
 
 /* GETs */
 $app->get('/', function(Request $req) use ($app) {
