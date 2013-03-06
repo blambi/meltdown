@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 import json
 import urllib2
+import httplib2
 import argparse
 
 __author__ = "Patrik Lembke <blambi@chebab.com>"
@@ -30,7 +31,22 @@ class REST_Kernel:
         return json.loads(response)
 
     def __put(self, body, uri = None):
-        raise BaseException, "Not implemented yet!"
+        if body:
+            raise BaseException, "Not implemented yet!"
+
+        if uri:
+            full_uri = self.base_uri + uri
+        else:
+            full_uri = self.base_uri
+
+        http = httplib2.Http()
+        response, content = http.request(full_uri, 'PUT', headers =
+                                         {'User-Agent': self.user_agent})
+
+        if response['content-type'] == 'application/json':
+            return json.loads(content)
+
+        return {'success': False, 'why': "Unknown data returned with status {0}".format(response['status'])}
 
     def __get(self, uri = None):
         if uri:
@@ -68,6 +84,21 @@ class REST_Kernel:
                 return { 'error': True, 'why': response['why'] }
         return False
 
+    def close_issue(self, id):
+        """Tries to close an issue"""
+
+        try:
+            response = self.__put(body = None, uri = "/{0}/close".format(id))
+        except ValueError, why:
+            return {'error': True, 'why': why}
+
+        if response.has_key('success'):
+            if response['success']:
+                return { 'error': False, 'id': response['id'] }
+            else:
+                return { 'error': True, 'why': response['why'] }
+        return False
+
 # -- main
 if __name__ == '__main__':
     # This needs some work, but basic arg parsing is ready
@@ -91,6 +122,15 @@ if __name__ == '__main__':
             print("ERR: Undefined error occurred.")
 
     elif args.close:
+        ret = kernel.close_issue(args.close[0])
+
+        if ret and ret['error']:
+            print("ERR: {0}.".format(ret['why']))
+        elif ret:
+            print("OK: Closed issue #{0}.".format(ret['id']))
+        else:
+            print("ERR: Undefined error occurred.")
+
         pass
     elif args.list:
         pass
@@ -102,4 +142,3 @@ if __name__ == '__main__':
             print("{0}\t{1}\t{2}".format(issue['id'],
                                          issue['who'],
                                          issue['what']))
-
