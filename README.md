@@ -1,14 +1,10 @@
 Meltdown
 ========
 
-A utility to see and report status of diffrent server issues (ie: is someone working on X).
-
+A utility to see and report status of different server issues (ie: is someone working on X).
 
 Sub-projects
 ------------
 
- - server/
-   Server
-
- - cli/
-   Client
+* [cli/Client](https://github.com/WKLive/meltdown/tree/master/cli)
+* [server/Server](https://github.com/WKLive/meltdown/tree/master/server)
