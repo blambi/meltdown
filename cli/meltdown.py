@@ -1,8 +1,11 @@
 #!/usr/bin/env python
+# -*- coding: utf-8 -*-
 import json
 import urllib2
-import httplib2
 import argparse
+import os
+import ConfigParser
+import httplib2
 
 __author__ = "Patrik Lembke <blambi@chebab.com>"
 __version__ = "0.1"
@@ -99,46 +102,94 @@ class REST_Kernel:
                 return { 'error': True, 'why': response['why'] }
         return False
 
+class ConfigManager:
+    defaults = {
+        'who': None,
+        'uri': "http://localhost:80"}
+
+    def __init__(self, conf_file=None):
+        if conf_file:
+            self.conf_file = conf_file
+        elif os.path.exists('{0}/.meltdown.conf'.format(os.path.expanduser('~'))):
+            self.conf_file = '{0}/.meltdown.conf'.format(os.path.expanduser('~'))
+        elif os.path.exists('/etc/meltdown.conf'):
+            self.conf_file = '/etc/meltdown.conf'
+        else:
+            self.conf_file = None
+
+        self.conf = ConfigParser.ConfigParser(self.defaults)
+
+        if self.conf_file:
+            self.conf.read(self.conf_file)
+
+    def get(self, key):
+        return self.conf.get('meltdown', key)
+
+
+# Commands
+def cmd_report(args):
+    ret = kernel.new_issue(args.who, args.WHAT)
+
+    if ret and ret['error']:
+        print("ERR: {0}.".format(ret['why']))
+    elif ret:
+        print("OK: Created issue #{0}.".format(ret['id']))
+    else:
+        print("ERR: Undefined error occurred.")
+
+def cmd_list(args):
+    open_issues = kernel.get_all_open()
+
+    print("ID\tWho\tWhat")
+    for issue in open_issues:
+        print("{0}\t{1}\t{2}".format(issue['id'],
+                                     issue['who'],
+                                     issue['what']))
+
+def cmd_close(args):
+    ret = kernel.close_issue(args.ID)
+
+    if ret and ret['error']:
+        print("ERR: {0}.".format(ret['why']))
+    elif ret:
+        print("OK: Closed issue #{0}.".format(ret['id']))
+    else:
+        print("ERR: Undefined error occurred.")
+
+
 # -- main
 if __name__ == '__main__':
+    # Settings
+    config = ConfigManager()
+
     # This needs some work, but basic arg parsing is ready
-    arg_parse = argparse.ArgumentParser( description = "Meltdown client - Report whats up etc." )
-    arg_parse.add_argument('-u', '--uri', type=str, help="URI to connect to (default http://localhost:80).", default="http://localhost:80")
-    arg_parse.add_argument('-l', '--list', help="Lists open/closed/all issues.", nargs=1, metavar=('TYPE')) # Hmmm not sure how
-    arg_parse.add_argument('-r', '--report', help="Report a new issue.", nargs=2, metavar=('WHO', 'WHAT'))
-    arg_parse.add_argument('-c', '--close', help="Close an issue by id.", nargs=1, metavar=('ID',))
-    args = arg_parse.parse_args()
+    arg_parser = argparse.ArgumentParser(description = "Meltdown client - Report whats up etc.")
+    arg_parser.add_argument('-u', '--uri', type=str,
+                            help="URI to connect to (default http://localhost:80).",
+                            default=config.get('uri'))
+
+    # Subcommands
+    subparsers = arg_parser.add_subparsers(help='sub-command help')
+
+    # report
+    parser_report = subparsers.add_parser('report', help='Report a new issue.')
+    parser_report.add_argument('-w', '--who', type=str, help='Whos doing it.', default=config.get('who'))
+    parser_report.add_argument('WHAT', type=str, help='Whats happening.')
+    parser_report.set_defaults(func=cmd_report)
+
+    # list
+    parser_report = subparsers.add_parser('list', help='List all open issues.')
+    parser_report.set_defaults(func=cmd_list)
+
+    # close
+    parser_report = subparsers.add_parser('close', help='Close an open issue.')
+    parser_report.add_argument('ID', type=int, help='ID to close.')
+    parser_report.set_defaults(func=cmd_close)
+
+    # parse
+    args = arg_parser.parse_args()
 
     kernel = REST_Kernel(args.uri)
 
-    if args.report:
-        ret = kernel.new_issue(args.report[0], args.report[1])
-
-        if ret and ret['error']:
-            print("ERR: {0}.".format(ret['why']))
-        elif ret:
-            print("OK: Created issue #{0}.".format(ret['id']))
-        else:
-            print("ERR: Undefined error occurred.")
-
-    elif args.close:
-        ret = kernel.close_issue(args.close[0])
-
-        if ret and ret['error']:
-            print("ERR: {0}.".format(ret['why']))
-        elif ret:
-            print("OK: Closed issue #{0}.".format(ret['id']))
-        else:
-            print("ERR: Undefined error occurred.")
-
-        pass
-    elif args.list:
-        pass
-    else: # List all is the default..
-        open_issues = kernel.get_all_open()
-
-        print("ID\tWho\tWhat")
-        for issue in open_issues:
-            print("{0}\t{1}\t{2}".format(issue['id'],
-                                         issue['who'],
-                                         issue['what']))
+    # run subcommand
+    args.func(args)
