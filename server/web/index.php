@@ -11,6 +11,10 @@ $app->before(function (Request $request){
     if (0 === strpos($request->headers->get('content-type'), 'application/json')) {
       $data = json_decode($request->getContent(), true);
       $request->request->replace(is_array($data) ? $data : array());
+      $request->is_json = TRUE;
+    }
+    else {
+      $request->is_json = FALSE;
     }
 });
 
@@ -83,7 +87,7 @@ $app->get('/', function(Request $req) use ($app) {
     $db = $mongo->meltdown;
     $open_issues = $db->issues->find(array('open' => true));
 
-    if (0 === strpos($req->headers->get('content-type'), 'application/json')) {
+    if ($req->is_json) {
       $ret = array();
       foreach($open_issues as $issue) {
         $ret[]= array(
@@ -113,19 +117,18 @@ $app->get('/{id}', function(Request $req, $id) use ($app) {
 
     $mongo = new \Mongo();
     $db = $mongo->meltdown;
-    $is_json = 0 === strpos($req->headers->get('content-type'), 'application/json');
     $issue = $db->issues->findOne(array('_id' => (int)$id));
 
     if (empty($issue)) {
-      if (!$is_json) {
-        $app->abort(404, "No such issue.");
+      if (!$req->is_json) {
+        return new Response("No such issue.", 404, array('Content-Type' => 'text/plain'));
       }
       else {
         return $app->json(array('success' => false, 'why' => "No such issue"), 404);
       }
     }
 
-    if ($is_json) {
+    if ($req->is_json) {
       return $app->json(array(
           'id' => $issue['_id'],
           'who' => $issue['who'],
