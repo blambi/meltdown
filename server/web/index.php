@@ -9,7 +9,6 @@ $app = new Silex\Application();
 /* - Pick out the JSON - */
 $app->before(function (Request $request){
     if (0 === strpos($request->headers->get('content-type'), 'application/json')) {
-      file_put_contents("/tmp/fullog", print_r($request->getContent(), true));
       $data = json_decode($request->getContent(), true);
       $request->request->replace(is_array($data) ? $data : array());
     }
