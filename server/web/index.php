@@ -106,5 +106,38 @@ $app->get('/', function(Request $req) use ($app) {
     }
 });
 
+$app->get('/{id}', function(Request $req, $id) use ($app) {
+    if(!(is_numeric($id) && is_int((int)$id))) {
+      return $app->json(array('success' => false, 'why' => "Issue ID must be an INT"), 418);
+    }
+
+    $mongo = new \Mongo();
+    $db = $mongo->meltdown;
+    $is_json = 0 === strpos($req->headers->get('content-type'), 'application/json');
+    $issue = $db->issues->findOne(array('_id' => (int)$id));
+
+    if (empty($issue)) {
+      if (!$is_json) {
+        $app->abort(404, "No such issue.");
+      }
+      else {
+        return $app->json(array('success' => false, 'why' => "No such issue"), 404);
+      }
+    }
+
+    if ($is_json) {
+      return $app->json(array(
+          'id' => $issue['_id'],
+          'who' => $issue['who'],
+          'what' => $issue['what'],
+          'open' => $issue['open'])
+      );
+    }
+    else {
+      $ret = "[". $issue['_id'] . "] who: " . $issue['who'] . ", what: " . $issue['what'] . "\n";
+      return new Response($ret, 200, array('Content-Type' => 'text/plain'));
+    }
+});
+
 
 $app->run();
