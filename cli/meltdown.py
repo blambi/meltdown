@@ -33,9 +33,9 @@ class REST_Kernel:
         response = fp.read()
         return json.loads(response)
 
-    def __put(self, body, uri = None):
+    def __put(self, body = None, uri = None):
         if body:
-            raise BaseException, "Not implemented yet!"
+            body = json.dumps(body)
 
         if uri:
             full_uri = self.base_uri + uri
@@ -43,8 +43,9 @@ class REST_Kernel:
             full_uri = self.base_uri
 
         http = httplib2.Http()
-        response, content = http.request(full_uri, 'PUT', headers =
-                                         {'User-Agent': self.user_agent})
+        response, content = http.request(full_uri, 'PUT', body=body, headers =
+                                         {'Content-Type': 'application/json',
+                                          'User-Agent': self.user_agent})
 
         if response['content-type'] == 'application/json':
             return json.loads(content)
@@ -102,6 +103,20 @@ class REST_Kernel:
                 return { 'error': True, 'why': response['why'] }
         return False
 
+    def update_issue(self, id, updates):
+        try:
+            response = self.__put(body = updates, uri = "/{0}".format(id))
+        except ValueError, why:
+            return {'error': True, 'why': why}
+
+        if response.has_key('success'):
+            if response['success']:
+                return { 'error': False, 'id': response['id'], 'issue': response['issue'] }
+            else:
+                return { 'error': True, 'why': response['why'] }
+        return False
+
+
 class ConfigManager:
     defaults = {
         'who': None,
@@ -156,6 +171,16 @@ def cmd_close(args):
     else:
         print("ERR: Undefined error occurred.")
 
+def cmd_steal(args):
+    ret = kernel.update_issue(args.ID, {'who': args.who})
+
+    if ret and ret['error']:
+        print("ERR: {0}.".format(ret['why']))
+    elif ret:
+        print("OK: Stole issue #{0}.".format(ret['id']))
+    else:
+        print("ERR: Undefined error occurred.")
+
 
 # -- main
 if __name__ == '__main__':
@@ -186,9 +211,14 @@ if __name__ == '__main__':
     parser_report.add_argument('ID', type=int, help='ID to close.')
     parser_report.set_defaults(func=cmd_close)
 
+    # steal
+    parser_report = subparsers.add_parser('steal', help='Reassign an issue.')
+    parser_report.add_argument('ID', type=int, help='ID to close.')
+    parser_report.add_argument('-w', '--who', type=str, help='Tho whom.', default=config.get('who'))
+    parser_report.set_defaults(func=cmd_steal)
+
     # parse
     args = arg_parser.parse_args()
-
     kernel = REST_Kernel(args.uri)
 
     # run subcommand

@@ -120,7 +120,7 @@ $app->put('/{id}', function(Request $req, $id) use ($app) {
     $db->issues->update(array('_id' => (int)$id), array('$set' => $updates));
     $issue = $db->issues->findOne(array('_id' => (int)$id));
 
-    if(isset($issue) && !$issue['open']) { // add isset $issue
+    if(isset($issue)) { // add isset $issue
       return $app->json(array('success' => true, 'issue' => $issue, 'id' => $issue['_id']), 200);
     }
     else {
