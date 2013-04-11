@@ -24,6 +24,7 @@ $app->before(function (Request $request){
   ID   - autoincr int
   who  - string
   what - longer string.
+  Date - Date, time TODO!
   Open - Boolean
 */
 
@@ -79,6 +80,57 @@ $app->put('/{id}/close', function($id) use ($app) {
     }
 
     return $app->json(array('success' => false, 'why' => "Update failed"), 500);
+});
+
+/**
+ * Update
+ */
+$app->put('/{id}', function(Request $req, $id) use ($app) {
+    if (!$req->is_json) {
+      return $app->json(array('success' => false, 'why' => "json body required"), 418);
+    }
+
+    // 1. If ID is ok
+    if(!(is_numeric($id) && is_int((int)$id))) {
+      return $app->json(array('success' => false, 'why' => "Issue ID must be an INT"), 418);
+    }
+
+    // 2. Check we got either: who or what
+    $updates = array(
+      'who' => $req->request->get('who'),
+      'what' => $req->request->get('what'),
+    );
+
+    if(empty($updates['who'])) {
+      unset($updates['who']);
+    }
+    if(empty($updates['what'])) {
+      unset($updates['what']);
+    }
+
+    if(count($updates) == 0) {
+      return $app->json(array('success' => false,
+                              'why' => 'Neither who or what specified'), 418);
+    }
+
+    $mongo = new \Mongo();
+    $db = $mongo->meltdown;
+
+    // 3. update
+    $db->issues->update(array('_id' => (int)$id), array('$set' => $updates));
+    $issue = $db->issues->findOne(array('_id' => (int)$id));
+
+    if(isset($issue) && !$issue['open']) { // add isset $issue
+      return $app->json(array('success' => true, 'issue' => $issue, 'id' => $issue['_id']), 200);
+    }
+    else {
+      return $app->json(array('success' => false, 'why' => "Unknown ID"), 418);
+    }
+});
+
+$app->put('/{id}/comment', function($id) use ($app) {
+
+
 });
 
 /* GETs */
