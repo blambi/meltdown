@@ -24,7 +24,7 @@ $app->before(function (Request $request){
   ID   - autoincr int
   who  - string
   what - longer string.
-  Date - Date, time TODO!
+  Date - unix timestamp
   Open - Boolean
 */
 
@@ -53,7 +53,9 @@ $app->post('/', function(Request $req) use ($app) {
                             '_id' => $uid,
                             'who' => strip_tags($who),
                             'what' => strip_tags($what),
-                            'open' => true));
+                            'date' => time(),
+                            'open' => true,
+    ));
 
     return $app->json(array('success' => true, 'id' => $uid), 201);
 });
@@ -146,6 +148,7 @@ $app->get('/', function(Request $req) use ($app) {
           'id' => $issue['_id'],
           'who' => $issue['who'],
           'what' => $issue['what'],
+          'date' => $issue['date'],
           'open' => $issue['open']);
       }
 
@@ -155,7 +158,8 @@ $app->get('/', function(Request $req) use ($app) {
         $ret = "Open issues:\n";
 
         foreach($open_issues as $issue) {
-          $ret .= "[". $issue['_id'] . "] who: " . $issue['who'] . ", what: " . $issue['what'] . "\n";
+          $ret .= "[". $issue['_id'] . "] who: " . $issue['who'] . ", what: " .
+            $issue['what'] . ", date: " . $issue['date'] . "\n";
         }
 
         return new Response($ret, 200, array('Content-Type' => 'text/plain'));
@@ -185,11 +189,13 @@ $app->get('/{id}', function(Request $req, $id) use ($app) {
           'id' => $issue['_id'],
           'who' => $issue['who'],
           'what' => $issue['what'],
+          'date' => $issue['date'],
           'open' => $issue['open'])
       );
     }
     else {
-      $ret = "[". $issue['_id'] . "] who: " . $issue['who'] . ", what: " . $issue['what'] . "\n";
+      $ret = "[". $issue['_id'] . "] who: " . $issue['who'] . ", what: " .
+        $issue['what'] . ", date: " . $issue['date']. "\n";
       return new Response($ret, 200, array('Content-Type' => 'text/plain'));
     }
 });

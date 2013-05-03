@@ -158,8 +158,8 @@ def cmd_list(args):
     print("ID\tWho\tWhat")
     for issue in open_issues:
         print("{0}\t{1}\t{2}".format(issue['id'],
-                                     issue['who'],
-                                     issue['what']))
+                                     issue['who'].encode('utf-8'),
+                                     issue['what'].encode('utf-8')))
 
 def cmd_close(args):
     ret = kernel.close_issue(args.ID)
