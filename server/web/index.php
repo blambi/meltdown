@@ -158,8 +158,12 @@ $app->get('/', function(Request $req) use ($app) {
         $ret = "Open issues:\n";
 
         foreach($open_issues as $issue) {
-          $ret .= "[". $issue['_id'] . "] who: " . $issue['who'] . ", what: " .
-            $issue['what'] . ", date: " . $issue['date'] . "\n";
+          $num = "[". $issue['_id'] . "] ";
+          $indent = ''; // There must be a nicer way...
+          for($x=0; $x<strlen($num); $x++) {
+            $indent .= ' ';
+          }
+          $ret .= $num . $issue['what'] . "\n" . $indent . "who: " . $issue['who'] . "\n" . $indent . "date: " . date('c', $issue['date']) . "\n\n";
         }
 
         return new Response($ret, 200, array('Content-Type' => 'text/plain'));
